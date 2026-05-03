@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>エネルギータイプ診断｜発電型・電池型</title>
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --zo: #e8530a;
+    --zo-light: #ff7a3d;
+    --zo-pale: rgba(232,83,10,0.08);
+    --zo-bg: #fff5f0;
+    --sho: #4a8c3f;
+    --sho-light: #6ab55e;
+    --sho-pale: rgba(74,140,63,0.08);
+    --sho-bg: #f0f7ef;
+    --mix: #7a5c8c;
+    --mix-light: #a07abf;
+    --mix-pale: rgba(122,92,140,0.08);
+    --bg: #faf8f4;
+    --ink: #1a1814;
+    --ink-mid: #555;
+    --ink-light: #999;
+    --border: #e8e0d0;
+    --white: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ノイズ */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ===== スタート ===== */
+  .start-screen { opacity: 0; animation: fadeUp 0.8s ease 0.1s forwards; }
+
+  .title-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ink);
+    color: white;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+    font-weight: 500;
+  }
+
+  .main-title {
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: clamp(28px, 6vw, 46px);
+    line-height: 1.2;
+    color: var(--ink);
+    margin-bottom: 12px;
+  }
+
+  .main-title .zo { color: var(--zo); }
+  .main-title .sho { color: var(--sho); }
+
+  .main-sub {
+    font-size: 14px;
+    color: var(--ink-mid);
+    line-height: 1.8;
+    margin-bottom: 40px;
+    font-weight: 300;
+  }
+
+  /* 2タイプ紹介 */
+  .type-intro {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .type-card {
+    border-radius: 12px;
+    padding: 24px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .type-card.zo-card {
+    background: linear-gradient(135deg, #fff5f0, #ffe8dc);
+    border: 1.5px solid rgba(232,83,10,0.2);
+  }
+
+  .type-card.sho-card {
+    background: linear-gradient(135deg, #f0f7ef, #dff0dc);
+    border: 1.5px solid rgba(74,140,63,0.2);
+  }
+
+  .type-emoji {
+    font-size: 32px;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .type-label {
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .zo-card .type-label { color: var(--zo); }
+  .sho-card .type-label { color: var(--sho); }
+
+  .type-desc {
+    font-size: 12px;
+    color: var(--ink-mid);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  .type-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 12px;
+  }
+
+  .type-tag {
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+
+  .zo-tag { background: rgba(232,83,10,0.12); color: var(--zo); }
+  .sho-tag { background: rgba(74,140,63,0.12); color: var(--sho); }
+
+  /* スタートボタン */
+  .btn-start {
+    display: block;
+    width: 100%;
+    padding: 20px;
+    background: var(--ink);
+    color: white;
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.05em;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+
+  .btn-start:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.2);
+  }
+
+  /* ===== 質問画面 ===== */
+  .quiz-screen { display: none; }
+
+  /* プログレス */
+  .progress-area {
+    margin-bottom: 36px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease 0.1s forwards;
+  }
+
+  .progress-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .progress-q-num {
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: 13px;
+    color: var(--ink-mid);
+  }
+
+  .progress-q-num span { font-size: 22px; color: var(--ink); }
+
+  .progress-pct {
+    font-size: 12px;
+    color: var(--ink-light);
+  }
+
+  .progress-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--zo), var(--sho));
+    border-radius: 6px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* 質問カード */
+  .q-card {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+  }
+
+  .q-topic {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--ink-light);
+    background: var(--bg);
+    padding: 4px 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 500;
+  }
+
+  .q-text {
+    font-size: clamp(16px, 3vw, 20px);
+    font-weight: 700;
+    line-height: 1.7;
+    color: var(--ink);
+    margin-bottom: 28px;
+  }
+
+  /* 選択肢 */
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .option-btn {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 20px;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  .option-btn:hover {
+    border-color: #ccc;
+    background: white;
+    transform: translateX(4px);
+  }
+
+  .option-btn.selected-zo {
+    background: var(--zo-pale);
+    border-color: var(--zo);
+  }
+
+  .option-btn.selected-sho {
+    background: var(--sho-pale);
+    border-color: var(--sho);
+  }
+
+  .opt-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-light);
+    background: white;
+    transition: all 0.2s ease;
+    margin-top: 1px;
+  }
+
+  .option-btn.selected-zo .opt-icon {
+    background: var(--zo);
+    border-color: var(--zo);
+    color: white;
+  }
+
+  .option-btn.selected-sho .opt-icon {
+    background: var(--sho);
+    border-color: var(--sho);
+    color: white;
+  }
+
+  .opt-text {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink);
+    font-weight: 400;
+    flex: 1;
+  }
+
+  .opt-type-hint {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+    margin-top: 3px;
+    opacity: 0.6;
+  }
+
+  /* ナビ */
+  .q-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    opacity: 0;
+    animation: fadeUp 0.5s ease 0.3s forwards;
+  }
+
+  .btn-back {
+    padding: 12px 28px;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    color: var(--ink-mid);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-back:hover { border-color: var(--ink-mid); color: var(--ink); }
+
+  .btn-next {
+    padding: 14px 44px;
+    background: var(--ink);
+    border: none;
+    border-radius: 10px;
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: 15px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  }
+
+  .btn-next:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
+  .btn-next:disabled { background: #ccc; box-shadow: none; transform: none; cursor: not-allowed; }
+
+  /* ===== 結果画面 ===== */
+  .result-screen { display: none; }
+
+  /* メーター */
+  .meter-section {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+    opacity: 0;
+    animation: fadeUp 0.7s ease 0.1s forwards;
+  }
+
+  .meter-title {
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    color: var(--ink-light);
+    text-align: center;
+    margin-bottom: 24px;
+    font-weight: 500;
+  }
+
+  .meter-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .meter-label {
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: 14px;
+  }
+
+  .meter-label.zo { color: var(--zo); }
+  .meter-label.sho { color: var(--sho); }
+
+  .meter-track {
+    height: 24px;
+    background: var(--sho-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 6px;
+    border: 1px solid rgba(74,140,63,0.15);
+    position: relative;
+  }
+
+  .meter-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--zo-light), var(--zo));
+    border-radius: 12px;
+    transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+  }
+
+  .meter-fill::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    right: 8px;
+    height: 4px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
+  }
+
+  .meter-score {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--ink-light);
+  }
+
+  /* 結果タイプ */
+  .result-type-card {
+    border-radius: 20px;
+    padding: 40px 36px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp 0.7s ease 0.3s forwards;
+  }
+
+  .result-type-card.zo-result {
+    background: linear-gradient(135deg, #fff5f0, #ffe0cc);
+    border: 2px solid rgba(232,83,10,0.3);
+  }
+
+  .result-type-card.mix-result {
+    background: linear-gradient(135deg, #f8f5ff, #ede0ff);
+    border: 2px solid rgba(122,92,140,0.3);
+  }
+
+  .result-type-card.sho-result {
+    background: linear-gradient(135deg, #f0f7ef, #dff0dc);
+    border: 2px solid rgba(74,140,63,0.3);
+  }
+
+  .result-type-card::before {
+    content: attr(data-emoji);
+    position: absolute;
+    right: -10px;
+    bottom: -20px;
+    font-size: 120px;
+    opacity: 0.08;
+    line-height: 1;
+  }
+
+  .result-badge {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+
+  .zo-result .result-badge { background: var(--zo); color: white; }
+  .mix-result .result-badge { background: var(--mix); color: white; }
+  .sho-result .result-badge { background: var(--sho); color: white; }
+
+  .result-type-name {
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: clamp(26px, 5vw, 36px);
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+
+  .zo-result .result-type-name { color: var(--zo); }
+  .mix-result .result-type-name { color: var(--mix); }
+  .sho-result .result-type-name { color: var(--sho); }
+
+  .result-type-sub {
+    font-size: 13px;
+    color: var(--ink-mid);
+    margin-bottom: 24px;
+    font-weight: 300;
+  }
+
+  /* 詳細セクション */
+  .detail-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: fadeUp 0.7s ease 0.5s forwards;
+  }
+
+  .detail-card {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .detail-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px; height: 100%;
+  }
+
+  .detail-card.energy::before { background: linear-gradient(to bottom, var(--zo), var(--zo-light)); }
+  .detail-card.style::before { background: linear-gradient(to bottom, var(--sho), var(--sho-light)); }
+  .detail-card.advice::before { background: linear-gradient(to bottom, #f0b429, #f7d070); }
+  .detail-card.caution::before { background: linear-gradient(to bottom, #e05c5c, #f09090); }
+
+  .detail-head {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--ink-light);
+    margin-bottom: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .detail-text {
+    font-size: 13px;
+    line-height: 1.9;
+    color: var(--ink-mid);
+  }
+
+  .detail-text strong { color: var(--ink); font-weight: 700; }
+
+  /* 12項目スコア */
+  .twelve-scores {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: fadeUp 0.7s ease 0.7s forwards;
+  }
+
+  .twelve-title {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 20px;
+    color: var(--ink);
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .score-topic {
+    font-size: 11px;
+    color: var(--ink-mid);
+    width: 130px;
+    flex-shrink: 0;
+    font-weight: 500;
+  }
+
+  .score-track-sm {
+    flex: 1;
+    height: 8px;
+    background: var(--sho-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .score-center {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background: var(--border);
+  }
+
+  .score-fill-sm {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 1s ease;
+    transition-delay: calc(var(--i) * 0.05s);
+  }
+
+  .score-fill-zo { background: var(--zo-light); }
+  .score-fill-sho { background: var(--sho-light); }
+
+  .score-tag {
+    font-size: 10px;
+    font-weight: 700;
+    width: 32px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .tag-zo { color: var(--zo); }
+  .tag-sho { color: var(--sho); }
+  .tag-mix { color: var(--mix); }
+
+  /* アクション */
+  .result-actions {
+    display: flex;
+    gap: 12px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.9s forwards;
+  }
+
+  .btn-action {
+    flex: 1;
+    padding: 16px;
+    border-radius: 12px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    letter-spacing: 0.05em;
+    border: none;
+  }
+
+  .btn-restart {
+    background: var(--ink);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  }
+
+  .btn-restart:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
+
+  .btn-share {
+    background: white;
+    color: var(--ink);
+    border: 1.5px solid var(--border);
+  }
+
+  .btn-share:hover { border-color: var(--ink); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .slide-anim {
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards;
+  }
+
+  @media (max-width: 480px) {
+    .type-intro { grid-template-columns: 1fr; }
+    .q-card { padding: 24px 20px; }
+    .result-type-card { padding: 28px 24px; }
+    .result-actions { flex-direction: column; }
+    .score-topic { width: 90px; font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ===== スタート ===== -->
+<div class="start-screen" id="startScreen">
+  <div class="title-badge">⚡ エネルギータイプ診断</div>
+  <h1 class="main-title">
+    あなたは<br>
+    <span class="zo">発電型</span>？<br>
+    <span class="sho">電池型</span>？
+  </h1>
+  <p class="main-sub">
+    理想を叶えるための「エネルギーの使い方」は、人によって全然違う。<br>
+    自分のタイプを知ることが、無理せず成果を出す第一歩です。
+  </p>
+
+  <div class="type-intro">
+    <div class="type-card zo-card">
+      <span class="type-emoji">🔥</span>
+      <div class="type-label">発電型</div>
+      <p class="type-desc">動くことでエネルギーを自家発電できる。飲み会のあとに元気になるタイプ。</p>
+      <div class="type-tags">
+        <span class="type-tag zo-tag">多動性</span>
+        <span class="type-tag zo-tag">つながり重視</span>
+        <span class="type-tag zo-tag">外向き</span>
+      </div>
+    </div>
+    <div class="type-card sho-card">
+      <span class="type-emoji">🌿</span>
+      <div class="type-label">電池型</div>
+      <p class="type-desc">決まった電池量で1日を過ごす。余白と備蓄でここぞの時に力を発揮するタイプ。</p>
+      <div class="type-tags">
+        <span class="type-tag sho-tag">フォーカス</span>
+        <span class="type-tag sho-tag">テリトリー重視</span>
+        <span class="type-tag sho-tag">内向き</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-start" onclick="startQuiz()">診断スタート ⚡（全12問）</button>
+</div>
+
+<!-- ===== 質問 ===== -->
+<div class="quiz-screen" id="quizScreen">
+  <div class="progress-area" id="progressArea">
+    <div class="progress-top">
+      <div class="progress-q-num">Q<span id="qNumBig">1</span> / 12</div>
+      <div class="progress-pct" id="pctText">0%</div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="q-card slide-anim" id="qCard">
+    <div class="q-topic" id="qTopic"></div>
+    <div class="q-text" id="qText"></div>
+    <div class="options" id="optionsWrap"></div>
+  </div>
+
+  <div class="q-nav" id="qNav">
+    <button class="btn-back" id="btnBack" onclick="prevQ()">← もどる</button>
+    <button class="btn-next" id="btnNext" onclick="nextQ()" disabled>つぎへ →</button>
+  </div>
+</div>
+
+<!-- ===== 結果 ===== -->
+<div class="result-screen" id="resultScreen"></div>
+
+</div>
+
+<script>
+const questions = [
+  {
+    topic: "①エネルギーの充電",
+    text: "仕事で疲れた日の夜、友人との飲み会に誘われた。あなたはどうなりますか？",
+    options: [
+      { text: "行ったら元気になりそう！楽しい予感がしてむしろエネルギーが湧く", type: "zo" },
+      { text: "楽しいけど消耗しそう…翌日のことを考えてやめておく", type: "sho" }
+    ]
+  },
+  {
+    topic: "②アイデアの出し方",
+    text: "新しい企画を考えるとき、あなたはどちらに近いですか？",
+    options: [
+      { text: "まず動いてみる。行動しながら軌道修正してアイデアを固めていく", type: "zo" },
+      { text: "好きな本を読んだり音楽を聴いたり、自分を整えているとアイデアが浮かぶ", type: "sho" }
+    ]
+  },
+  {
+    topic: "③成果につながるもの",
+    text: "成果を出すために、あなたが一番意識していることは？",
+    options: [
+      { text: "アウトプットの量と質。動いた分だけ結果が出る", type: "zo" },
+      { text: "自分のコンディション。状態が整っているときほど成果が出る", type: "sho" }
+    ]
+  },
+  {
+    topic: "④つながりとテリトリー",
+    text: "新しいビジネスや活動を広げるとき、どのアプローチが自分に合っていますか？",
+    options: [
+      { text: "人脈を広げてつながりを作る。人と会うことでチャンスが生まれる", type: "zo" },
+      { text: "まず自分の快適な場（テリトリー）を作る。そこに共鳴した人が来るイメージ", type: "sho" }
+    ]
+  },
+  {
+    topic: "⑤成果の出し方スタイル",
+    text: "ビジネスの進め方として、どちらに近いですか？",
+    options: [
+      { text: "狩人スタイル。積極的に外に出ていってチャンスをつかみに行く", type: "zo" },
+      { text: "農耕スタイル。じっくり種を蒔いて、自分のところに来てもらう", type: "sho" }
+    ]
+  },
+  {
+    topic: "⑥エネルギーの向き",
+    text: "普段、エネルギーはどちらに使うことが多いですか？",
+    options: [
+      { text: "外側。人との関わりや行動、コミュニケーションにエネルギーを使う", type: "zo" },
+      { text: "内側。自分との対話や内省、じっくり考えることにエネルギーを使う", type: "sho" }
+    ]
+  },
+  {
+    topic: "⑦コミュニケーション vs コンテンツ",
+    text: "自分の考えや想いを伝えるとき、どちらが得意ですか？",
+    options: [
+      { text: "話すこと。対話や会話で伝えるほうがスムーズにできる", type: "zo" },
+      { text: "書くこと・作ること。ブログや動画など、コンテンツにすると本領発揮できる", type: "sho" }
+    ]
+  },
+  {
+    topic: "⑧行動パターン",
+    text: "目標に向かって行動するとき、どちらが自分らしいですか？",
+    options: [
+      { text: "大量行動。いろんなことを試して当たるまでやり続ける", type: "zo" },
+      { text: "フォーカス。ここぞという1点に絞ってエネルギーを集中させる", type: "sho" }
+    ]
+  },
+  {
+    topic: "⑨経験のシェア",
+    text: "良いことや発見があったとき、どうなりますか？",
+    options: [
+      { text: "すぐ誰かに話したくなる。みんなに広めたい気持ちが自然と湧く", type: "zo" },
+      { text: "まずは自分の中で噛み締める。分かち合うより自己完結しがち", type: "sho" }
+    ]
+  },
+  {
+    topic: "⑩余白への向き合い方",
+    text: "スケジュールに空き時間ができたとき、どうなりますか？",
+    options: [
+      { text: "もったいない！予定や楽しいことで埋めたくなる", type: "zo" },
+      { text: "ほっとする。余白こそが大事だから、意識的にキープしたい", type: "sho" }
+    ]
+  },
+  {
+    topic: "⑪エネルギーの出しどころ",
+    text: "やるべきことや方向性が定まっていないとき、どうなりますか？",
+    options: [
+      { text: "とにかく動いてしまう。エネルギーがどんどん漏れ出してしまう感じ", type: "zo" },
+      { text: "動けなくなる。エネルギーに蓋をして、封印してしまう感じ", type: "sho" }
+    ]
+  },
+  {
+    topic: "⑫成功法則",
+    text: "「あなたらしい成功の仕方」はどちらに近いですか？",
+    options: [
+      { text: "多動性。衝動的に動いて、量でカバーしながら突破していく", type: "zo" },
+      { text: "少動性。洞察してフォーカスし、ここぞというときだけ動く", type: "sho" }
+    ]
+  }
+];
+
+const topics = ["エネルギーの充電","アイデアの出し方","成果につながるもの","つながりとテリトリー","成果スタイル","エネルギーの向き","伝え方","行動パターン","経験のシェア","余白","エネルギー管理","成功法則"];
+
+let current = 0;
+let answers = new Array(12).fill(null);
+
+function startQuiz() {
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('quizScreen').style.display = 'block';
+  renderQ();
+}
+
+function renderQ() {
+  const q = questions[current];
+  const pct = Math.round((current / 12) * 100);
+
+  document.getElementById('qNumBig').textContent = current + 1;
+  document.getElementById('pctText').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('qTopic').textContent = q.topic;
+  document.getElementById('qText').textContent = q.text;
+
+  const wrap = document.getElementById('optionsWrap');
+  wrap.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    const isSelected = answers[current] === opt.type;
+    btn.className = `option-btn${isSelected ? ' selected-' + opt.type : ''}`;
+    btn.innerHTML = `
+      <div class="opt-icon">${isSelected ? '✓' : String.fromCharCode(65 + i)}</div>
+      <div class="opt-text">${opt.text}</div>
+    `;
+    btn.onclick = () => selectOpt(opt.type, i);
+    wrap.appendChild(btn);
+  });
+
+  document.getElementById('btnBack').style.visibility = current === 0 ? 'hidden' : 'visible';
+  document.getElementById('btnNext').textContent = current === 11 ? '結果を見る ⚡' : 'つぎへ →';
+  document.getElementById('btnNext').disabled = answers[current] === null;
+
+  const card = document.getElementById('qCard');
+  card.style.animation = 'none';
+  card.offsetHeight;
+  card.style.animation = 'fadeUp 0.45s ease forwards';
+}
+
+function selectOpt(type, idx) {
+  answers[current] = type;
+  const btns = document.querySelectorAll('.option-btn');
+  btns.forEach((btn, i) => {
+    btn.className = 'option-btn' + (i === idx ? ' selected-' + type : '');
+    btn.querySelector('.opt-icon').textContent = i === idx ? '✓' : String.fromCharCode(65 + i);
+  });
+  document.getElementById('btnNext').disabled = false;
+}
+
+function prevQ() {
+  if (current > 0) { current--; renderQ(); }
+}
+
+function nextQ() {
+  if (current < 11) { current++; renderQ(); }
+  else showResult();
+}
+
+function showResult() {
+  document.getElementById('quizScreen').style.display = 'none';
+  const resultEl = document.getElementById('resultScreen');
+  resultEl.style.display = 'block';
+
+  const zoCount = answers.filter(a => a === 'zo').length;
+  const shoCount = answers.filter(a => a === 'sho').length;
+  const zoPercent = Math.round((zoCount / 12) * 100);
+
+  let type, typeClass, emoji, typeName, typeSub, energyText, styleText, adviceText, cautionText;
+
+  if (zoCount >= 9) {
+    type = 'zo'; typeClass = 'zo-result'; emoji = '🔥';
+    typeName = '発電型';
+    typeSub = 'エネルギーを自家発電できる、行動派タイプ';
+    energyText = '飲み会のあとに元気になれる、<strong>エネルギーを自家発電できる</strong>タイプです。動くことで充電できるので、大きなプロジェクトも行動しながら突破できます。「全力を出し切った！」という達成感がさらなる燃料になります。';
+    styleText = '人との<strong>つながりを作ること</strong>でチャンスを広げる「狩人スタイル」が向いています。コミュニケーションが得意で、話すことで想いを伝えるほうが本領発揮できます。スケジュールは予定で埋めていくほうが自然にエネルギーが高まります。';
+    adviceText = '<strong>エネルギーの出しどころを決めること</strong>が最重要課題です。方向性が定まらないとエネルギーがただ漏れして空回りしやすい。「これ」と決めたら大量行動で突破していくスタイルで結果を出せます。多動性を活かして、行動の量で当てにいきましょう。';
+    cautionText = '<strong>電池型の人との価値観の違い</strong>に注意。「なんであの人もっと動かないの？」と感じやすいですが、それは怠慢ではなくエネルギーの使い方の違いです。また、エネルギーを出し切ることを他の人にも求めてしまわないよう意識してみましょう。';
+  } else if (shoCount >= 9) {
+    type = 'sho'; typeClass = 'sho-result'; emoji = '🌿';
+    typeName = '電池型';
+    typeSub = '備蓄と余白でここぞの時に力を発揮するタイプ';
+    energyText = '決まった電池量で1日を過ごす<strong>電池タイプ</strong>です。充電できない分、使いどころが命。楽しい飲み会でも消耗するので、残量管理が大切。普段70%で備蓄しておくことで、ここぞというときに300%のエネルギーを出せます。';
+    styleText = '自分の<strong>テリトリーと余白</strong>を守ることが成果への近道です。農耕民族スタイルで、自分の場を整えて共鳴した人に来てもらう方が自然に動けます。コンテンツ作りや文章・作品に想いを込めることで本領発揮できます。';
+    adviceText = '<strong>毎日全力を出さないこと</strong>がむしろ成功法則です。エネルギーを備蓄しておき、ここぞというときだけ動く「少動性」を大切に。フォーカスと洞察が最強の武器。やらないことを決めて1点集中することで、大きな成果につながります。';
+    cautionText = '<strong>エネルギーの封印</strong>に注意。出しどころが見つからないとエネルギーに蓋をして「自分にはエネルギーがない」と思い込みやすい。エネルギーがないのではなく、出しどころが決まっていないだけです。自分の「これだ」を見つけることが最優先。';
+  } else {
+    type = 'mix'; typeClass = 'mix-result'; emoji = '⚡';
+    typeName = 'ミックス型';
+    typeSub = '発電型と電池型、両方の特性を持つバランスタイプ';
+    energyText = '発電型と電池型、<strong>両方の特性をバランスよく</strong>持っています。状況によって自家発電できるときもあれば、エネルギー管理が必要なときもある。この柔軟性は強みですが、自分がどちらモードにいるかを意識することが大切です。';
+    styleText = '場面によって<strong>コミュニケーション重視</strong>と<strong>コンテンツ重視</strong>を使い分けられます。人との繋がりも、テリトリー作りも、両方できる万能型。ただし「どちらでもいける」からこそ、軸を決めないと分散しやすいという面もあります。';
+    adviceText = '<strong>今の自分がどちらモードか</strong>を日々観察することが最重要です。発電モードのときは積極的に行動してつながりを広げ、電池モードのときは余白を守り備蓄に徹する。モードを読み間違えると消耗するので、自己観察の精度を上げましょう。';
+    cautionText = '<strong>万能ゆえの軸のなさ</strong>に注意。「どちらでもできる」が「どちらでも中途半端」になりやすい。まず電池型の「備蓄と余白」を基本として持ちながら、エネルギーが高まったときに発電型の行動力を発揮するイメージで動くと安定します。';
+  }
+
+  resultEl.innerHTML = `
+    <div class="meter-section">
+      <div class="meter-title">あなたのエネルギータイプ分布</div>
+      <div class="meter-labels">
+        <div class="meter-label zo">🔥 発電型 ${zoCount}問</div>
+        <div class="meter-label sho">🌿 電池型 ${shoCount}問</div>
+      </div>
+      <div class="meter-track">
+        <div class="meter-fill" id="meterFill" style="width:0%"></div>
+      </div>
+      <div class="meter-score">
+        <span>発電型 ${zoPercent}%</span>
+        <span>電池型 ${100 - zoPercent}%</span>
+      </div>
+    </div>
+
+    <div class="result-type-card ${typeClass}" data-emoji="${emoji}">
+      <div class="result-badge">${emoji} あなたのタイプ</div>
+      <div class="result-type-name">${typeName}</div>
+      <div class="result-type-sub">${typeSub}</div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-card energy">
+        <div class="detail-head">⚡ エネルギーの特徴</div>
+        <div class="detail-text">${energyText}</div>
+      </div>
+      <div class="detail-card style">
+        <div class="detail-head">🌿 あなたに合ったスタイル</div>
+        <div class="detail-text">${styleText}</div>
+      </div>
+      <div class="detail-card advice">
+        <div class="detail-head">✨ 無理せず成果を出すコツ</div>
+        <div class="detail-text">${adviceText}</div>
+      </div>
+      <div class="detail-card caution">
+        <div class="detail-head">⚠️ 気をつけたいこと</div>
+        <div class="detail-text">${cautionText}</div>
+      </div>
+    </div>
+
+    <div class="twelve-scores">
+      <div class="twelve-title">📊 12項目の傾向</div>
+      ${questions.map((q, i) => {
+        const ans = answers[i];
+        const isZo = ans === 'zo';
+        const fillPct = isZo ? 50 + (100/12)*2 : 50 - (100/12)*2;
+        return `
+          <div class="score-row">
+            <div class="score-topic">${topics[i]}</div>
+            <div class="score-track-sm">
+              <div class="score-center"></div>
+              <div class="score-fill-sm score-fill-${ans}" style="width:${isZo ? fillPct : 100-fillPct}%; margin-left:${isZo ? 50 : 0}%; --i:${i}"></div>
+            </div>
+            <div class="score-tag tag-${ans}">${ans === 'zo' ? '発電型' : '電池型'}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <div class="result-actions">
+      <button class="btn-action btn-restart" onclick="restart()">🔄 もう一度やり直す</button>
+      <button class="btn-action btn-share" onclick="window.print()">🖨 保存・印刷する</button>
+    </div>
+  `;
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // メーターアニメーション
+  setTimeout(() => {
+    document.getElementById('meterFill').style.width = zoPercent + '%';
+  }, 400);
+}
+
+function restart() {
+  current = 0;
+  answers = new Array(12).fill(null);
+  document.getElementById('resultScreen').style.display = 'none';
+  document.getElementById('resultScreen').innerHTML = '';
+  document.getElementById('startScreen').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
